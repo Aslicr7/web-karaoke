@@ -1,0 +1,314 @@
+@import "tailwindcss";
+
+/* 1. ĐẢM BẢO KHUNG IFRAME PHỦ TOÀN BỘ MÀN HÌNH (TRUE FULLSCREEN) & TĂNG TỐC PHẦN CỨNG GPU */
+#tv-container,
+#player-container,
+#player {
+  position: fixed;
+  inset: 0;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 0;
+  background-color: #000000;
+  overflow: hidden;
+  pointer-events: none;
+  transition: opacity 0.2s ease-in-out;
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+#player-container iframe,
+#youtube-player {
+  position: absolute;
+  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100vw !important;
+  height: 100vh !important;
+  max-width: 100vw !important;
+  max-height: 100vh !important;
+  border: 0;
+  display: block;
+  pointer-events: none !important; /* Chặn click chuột trực tiếp vào YouTube IFrame */
+  user-select: none;
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+/* KIOSK DISPLAY-ONLY MODE CHO MÀN HÌNH TV HOST (KHÓA 100% THAO TÁC TRỰC TIẾP) */
+body.tv-kiosk-mode,
+body.tv-kiosk-mode * {
+  cursor: none !important;
+  user-select: none !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  pointer-events: none !important;
+}
+
+#screen-blocker {
+  position: fixed;
+  inset: 0;
+  width: 100vw;
+  height: 100vh;
+  z-index: 9999;
+  background: transparent;
+  cursor: none !important;
+  user-select: none !important;
+  pointer-events: auto !important;
+}
+
+/* Lớp phủ kích hoạt TV Host & Nút bấm phát sáng bắt đầu phòng hát (Glow Animation) */
+#tv-activation-overlay {
+  z-index: 10000;
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+#tv-activation-overlay * {
+  cursor: pointer !important;
+  pointer-events: auto !important;
+}
+
+.tv-glow-btn {
+  box-shadow: 0 0 25px rgba(255, 0, 0, 0.6), 0 0 50px rgba(204, 0, 0, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.25);
+  animation: tv-btn-glow 2s infinite ease-in-out;
+  cursor: pointer !important;
+}
+
+@keyframes tv-btn-glow {
+  0%, 100% {
+    transform: scale(1);
+    box-shadow: 0 0 25px rgba(255, 0, 0, 0.6), 0 0 50px rgba(204, 0, 0, 0.4), inset 0 0 15px rgba(255, 255, 255, 0.25);
+  }
+  50% {
+    transform: scale(1.035);
+    box-shadow: 0 0 40px rgba(255, 0, 0, 0.85), 0 0 75px rgba(220, 38, 38, 0.6), inset 0 0 20px rgba(255, 255, 255, 0.4);
+  }
+}
+
+/* 2. CHỮ CHẠY CUỘN MƯỢT MÀ TỪ PHẢI SANG TRÁI (MARQUEE TEXT DÀI) */
+.marquee-box {
+  position: relative;
+  overflow: hidden;
+  white-space: nowrap;
+  mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+  -webkit-mask-image: linear-gradient(to right, transparent 0%, black 4%, black 96%, transparent 100%);
+}
+
+@keyframes marquee-scroll {
+  0% {
+    transform: translateX(0%);
+  }
+  100% {
+    transform: translateX(-50%);
+  }
+}
+
+.marquee-track {
+  display: inline-flex;
+  align-items: center;
+  white-space: nowrap;
+  will-change: transform;
+  animation: marquee-scroll 18s linear infinite;
+}
+
+.marquee-track:hover {
+  animation-play-state: paused;
+}
+
+/* 3. HIỆU ỨNG REACTION BAY LƠ LỬNG TỪ DƯỚI LÊN & DANMAKU (TĂNG TỐC PHẦN CỨNG GPU) */
+#floating-reactions-container,
+#danmaku-container,
+#rocket-canvas {
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+@keyframes reaction-float-up {
+  0% {
+    opacity: 0;
+    transform: translate3d(0, 40px, 0) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translate3d(var(--drift-x, 0px), 0, 0) scale(1.1);
+  }
+  80% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(var(--drift-x, 0px), -75vh, 0) scale(0.9);
+  }
+}
+
+.floating-bubble-item {
+  position: absolute;
+  bottom: 60px;
+  will-change: transform, opacity;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: reaction-float-up 4s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  pointer-events: none;
+}
+
+/* 4. HIỆU ỨNG BÌNH LUẬN BAY NGANG MÀN HÌNH (DANMAKU EFFECT) */
+@keyframes danmaku-scroll {
+  0% {
+    transform: translateX(100vw);
+  }
+  100% {
+    transform: translateX(calc(-100% - 20px));
+  }
+}
+
+.danmaku-item {
+  position: absolute;
+  white-space: nowrap;
+  font-weight: 900;
+  text-shadow: 
+    -2px -2px 0 #000,  
+     2px -2px 0 #000,
+    -2px  2px 0 #000,
+     2px  2px 0 #000,
+     0px  4px 12px rgba(0,0,0,0.9);
+  will-change: transform;
+  transform: translateZ(0);
+  -webkit-transform: translateZ(0);
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  animation: danmaku-scroll 9s linear forwards;
+  pointer-events: none;
+}
+
+/* 5. HIỆU ỨNG RUNG LẮC MÀN HÌNH KHI BẮN TÊN LỬA (SCREEN-SHAKE) */
+@keyframes tv-screen-shake {
+  0% { transform: translate(0, 0) rotate(0deg); }
+  10% { transform: translate(-8px, 6px) rotate(-1.2deg); }
+  20% { transform: translate(8px, -6px) rotate(1.2deg); }
+  30% { transform: translate(-7px, -4px) rotate(-0.8deg); }
+  40% { transform: translate(7px, 5px) rotate(0.8deg); }
+  50% { transform: translate(-5px, 3px) rotate(-0.5deg); }
+  60% { transform: translate(5px, -3px) rotate(0.5deg); }
+  70% { transform: translate(-3px, 2px) rotate(-0.3deg); }
+  80% { transform: translate(3px, -2px) rotate(0.3deg); }
+  90% { transform: translate(-1px, 1px) rotate(-0.1deg); }
+  100% { transform: translate(0, 0) rotate(0deg); }
+}
+
+.screen-shake {
+  animation: tv-screen-shake 0.85s cubic-bezier(0.36, 0.07, 0.19, 0.97) both;
+}
+
+/* 6. HIỆU ỨNG TÊN LỬA KHỔNG LỒ PHÓNG LÊN ĐỈNH */
+@keyframes rocket-launch-up {
+  0% {
+    opacity: 0;
+    transform: translate3d(-50%, 120px, 0) scale(0.6);
+  }
+  15% {
+    opacity: 1;
+    transform: translate3d(-50%, 0px, 0) scale(1.1);
+  }
+  80% {
+    opacity: 1;
+    transform: translate3d(-50%, -70vh, 0) scale(1.4);
+  }
+  100% {
+    opacity: 0;
+    transform: translate3d(-50%, -85vh, 0) scale(1.8);
+  }
+}
+
+.rocket-blast-item {
+  position: absolute;
+  bottom: 20px;
+  left: 50%;
+  transform: translateX(-50%);
+  will-change: transform, opacity;
+  animation: rocket-launch-up 1.1s cubic-bezier(0.25, 0.46, 0.45, 0.94) forwards;
+  pointer-events: none;
+  z-index: 50;
+}
+
+/* 7. HIỆU ỨNG SÓNG XUNG KÍCH BÙNG NỔ (SHOCKWAVE RING) */
+@keyframes rocket-shockwave {
+  0% {
+    transform: translate(-50%, -50%) scale(0.1);
+    opacity: 1;
+    border-width: 14px;
+  }
+  50% {
+    opacity: 0.9;
+    border-width: 6px;
+  }
+  100% {
+    transform: translate(-50%, -50%) scale(2.8);
+    opacity: 0;
+    border-width: 1px;
+  }
+}
+
+.rocket-shockwave-ring {
+  position: absolute;
+  border-radius: 9999px;
+  border-style: solid;
+  border-color: rgba(251, 191, 36, 0.9);
+  box-shadow: 0 0 50px rgba(249, 115, 22, 0.8), inset 0 0 50px rgba(239, 68, 68, 0.8);
+  pointer-events: none;
+  animation: rocket-shockwave 1.2s cubic-bezier(0.1, 0.8, 0.3, 1) forwards;
+  will-change: transform, opacity;
+}
+
+/* 8. VƯƠNG MIỆN LẤP LÁNH (CROWN SPARKLE) */
+@keyframes crown-sparkle {
+  0%, 100% {
+    filter: drop-shadow(0 0 8px rgba(234, 179, 8, 0.8));
+    transform: scale(1) rotate(0deg);
+  }
+  50% {
+    filter: drop-shadow(0 0 24px rgba(250, 204, 21, 1)) drop-shadow(0 0 35px rgba(245, 158, 11, 0.9));
+    transform: scale(1.15) rotate(6deg);
+  }
+}
+
+.crown-sparkle-fx {
+  display: inline-block;
+  animation: crown-sparkle 1.2s ease-in-out infinite;
+}
+
+/* 9. BẢNG THÀNH VIÊN TRÊN TV HOST: TỰ ĐỘNG MỞ RỘNG VÀ KHÔNG HIỆN THANH CUỘN */
+#members-card,
+#members-list-container,
+#members-list {
+  max-height: none !important;
+  height: auto !important;
+  overflow: visible !important;
+  scrollbar-width: none !important; /* Firefox */
+  -ms-overflow-style: none !important;  /* IE and Edge */
+}
+
+#members-card::-webkit-scrollbar,
+#members-list-container::-webkit-scrollbar,
+#members-list::-webkit-scrollbar {
+  display: none !important; /* Chrome, Safari, Opera */
+}
+
+
+

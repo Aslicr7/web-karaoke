@@ -1,0 +1,6 @@
+{
+  "name": "Web Karaoke",
+  "description": "Hệ thống Web Karaoke điều khiển bằng Socket.io với giao diện Host TV, hỗ trợ Multi-Screen TV phụ qua mã PIN 4 số của phòng và Client chọn bài",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Web Karaoke - Màn hình TV Host</title>
+    <meta name="description" content="Màn hình TV Karaoke phát YouTube tự động đồng bộ qua Socket.io" />
+    <meta property="og:title" content="Web Karaoke - Màn hình TV Host" />
+    <meta property="og:description" content="Màn hình TV Karaoke phát YouTube tự động đồng bộ qua Socket.io" />
+    <meta property="og:type" content="website" />
+    <link rel="stylesheet" href="/src/index.css" />
+  </head>
+  <body id="tv-container" class="bg-[#0f0f0f] text-[#f1f1f1] min-h-screen overflow-hidden font-sans antialiased">
+    <!-- 1. MÃ QR NHỎ GỌN & MÃ PIN (Góc trên bên trái, top: 16px, left: 16px, LUÔN GHIM Ở LỚP CAO NHẤT z-index: 110) -->
+    <div
+      id="qr-compact-box"
+      class="fixed top-4 left-4 z-[110] p-2 bg-[#212121]/95 backdrop-blur-md rounded-2xl shadow-2xl border border-[#3f3f3f] flex flex-col items-center justify-center pointer-events-none select-none gap-1.5"
+      title="Quét mã QR để điều khiển chọn bài"
+    >
+      <div class="p-1 bg-white rounded-xl shadow-sm">
+        <canvas id="qr-canvas" width="68" height="68" class="rounded-lg block"></canvas>
+      </div>
+      <div id="tv-pin-container" class="px-2 py-0.5 rounded-lg bg-[#272727] border border-[#3f3f3f] text-[11px] font-black text-amber-300 tracking-wider shadow-sm flex items-center gap-1">
+        <span>🔑 PIN:</span> <span id="tv-pin-text" class="text-[#f1f1f1] font-extrabold text-xs">----</span>
+      </div>
+    </div>
+
+    <!-- 2. DẢI THÔNG TIN BÀI HÁT DẠNG THANH CON NHỘNG LIỀN MẠCH (Căn chính giữa, top: 14px, z-index: 30) -->
+    <header
+      id="top-song-pill"
+      class="fixed top-3.5 left-1/2 -translate-x-1/2 z-30 bg-[#212121]/90 backdrop-blur-md px-5 sm:px-6 py-2 rounded-full border border-[#3f3f3f] shadow-2xl flex items-center justify-center max-w-[min(860px,calc(100vw-360px))] min-w-[240px] pointer-events-none select-none transition-all duration-300"
+    >
+      <div id="top-pill-marquee" class="marquee-box w-full overflow-hidden whitespace-nowrap text-xs sm:text-sm font-medium flex items-center justify-center">
+        <span id="top-pill-content" class="inline-flex items-center gap-1.5 text-[#f1f1f1]">
+          <span>🎵</span> <span>Đang chờ bài hát...</span>
+        </span>
+      </div>
+    </header>
+
+    <!-- Container hiệu ứng reaction bay từ dưới lên (Floating bubbles) & Bình luận Danmaku -->
+    <div id="floating-reactions-container" class="fixed inset-0 pointer-events-none z-30 overflow-hidden select-none"></div>
+    <div id="danmaku-container" class="fixed inset-0 pointer-events-none z-30 overflow-hidden select-none"></div>
+    <canvas id="rocket-canvas" class="fixed inset-0 pointer-events-none z-35 w-full h-full select-none"></canvas>
+
+    <!-- 3. THẺ THÀNH VIÊN PHÒNG & ĐIỂM SỐ (Góc trên bên phải, top: 16px, right: 16px, LUÔN GHIM Ở LỚP CAO NHẤT z-index: 110) -->
+    <aside
+      id="members-card"
+      class="fixed top-4 right-4 z-[110] bg-[#212121]/90 backdrop-blur-md border border-[#3f3f3f] rounded-2xl p-2.5 w-44 sm:w-52 shadow-2xl flex flex-col gap-1.5 text-xs pointer-events-none transition-all duration-200 select-none"
+    >
+      <div class="flex items-center justify-between gap-1 pb-1 border-b border-[#3f3f3f]">
+        <div class="flex items-center gap-1 font-bold text-[#f1f1f1] truncate text-[11px]">
+          <span>🎤</span>
+          <span class="truncate">Thành viên phòng</span>
+        </div>
+        <span
+          id="members-count-badge"
+          class="px-1.5 py-0.2 rounded-full bg-[#272727] text-[#f1f1f1] border border-[#3f3f3f] text-[10px] font-bold shrink-0"
+        >
+          0
+        </span>
+      </div>
+
+      <!-- Danh sách thành viên: Không giới hạn chiều cao, không có thanh cuộn (scrollbar) -->
+      <div id="members-list-container" class="space-y-1 overflow-visible">
+        <div id="members-empty-hint" class="text-[10px] text-[#aaaaaa] italic text-center py-1">
+          Chưa có ai vào phòng
+        </div>
+        <div id="members-list" class="space-y-1 hidden"></div>
+      </div>
+    </aside>
+
+    <!-- Thông báo khi có thành viên mới vào phòng -->
+    <div
+      id="member-join-toast"
+      class="fixed top-16 left-1/2 -translate-x-1/2 z-40 pointer-events-none hidden bg-[#212121]/95 text-[#f1f1f1] px-4 py-2 rounded-full border border-red-500/50 shadow-2xl backdrop-blur-md flex items-center gap-2 text-xs sm:text-sm font-bold transition-all duration-300 transform scale-95 opacity-0"
+    >
+      <span class="text-base text-red-500">👋</span>
+      <span id="member-join-toast-text">Tên đã vào phòng!</span>
+    </div>
+
+    <!-- 1. Fullscreen YouTube Video Container ở lớp nền (TRUE FULLSCREEN 100vw 100vh pointer-events-none) -->
+    <main
+      id="player-container"
+      class="fixed inset-0 w-screen h-screen z-0 bg-[#0f0f0f] overflow-hidden pointer-events-none"
+    >
+      <div id="youtube-player" class="w-full h-full"></div>
+    </main>
+
+    <!-- 3. MÀN HÌNH CHẤM ĐIỂM KARAOKE HIỆN ĐẠI & TỐI GIẢN (Score Modal khi hết bài) -->
+    <div
+      id="score-modal"
+      class="fixed inset-0 z-[100] hidden bg-black/80 backdrop-blur-md flex items-center justify-center p-4 transition-all duration-300 select-none pointer-events-none"
+      style="z-index: 100;"
+    >
+      <!-- Background subtle glow spotlight -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-30">
+        <div class="w-[450px] h-[450px] bg-gradient-to-tr from-amber-500/20 via-red-600/20 to-neutral-700/20 rounded-full blur-3xl animate-pulse"></div>
+      </div>
+
+      <div id="score-modal-card" class="relative z-10 max-w-md w-full bg-[#212121] border border-[#3f3f3f] rounded-3xl p-6 sm:p-7 text-center shadow-2xl space-y-4">
+        <!-- Phần tử 1 (TRÊN CÙNG): Tên bài hát (#score-song-title) - hiển thị 1 dòng tinh tế, gọn gàng ở đỉnh bảng -->
+        <div class="px-2 pt-0.5">
+          <p id="score-song-title" class="text-sm sm:text-base font-semibold text-[#f1f1f1] truncate max-w-xs mx-auto">
+            --
+          </p>
+        </div>
+
+        <!-- Phần tử 2 (Ở GIỮA): Vòng tròn điểm số to (#score-circle / #score-number) -->
+        <div class="flex justify-center py-1">
+          <div class="inline-flex flex-col items-center justify-center w-36 h-36 sm:w-40 sm:h-40 rounded-full bg-gradient-to-br from-amber-400/15 via-red-600/10 to-neutral-800 border-4 border-amber-400/80 shadow-2xl shadow-amber-500/20 relative">
+            <span id="score-number" class="text-5xl sm:text-6xl font-black text-amber-400 drop-shadow-md tracking-tight">
+              0
+            </span>
+            <span class="text-xs font-black uppercase text-amber-300/90 tracking-widest mt-0.5">
+              ĐIỂM
+            </span>
+          </div>
+        </div>
+
+        <!-- Phần tử 3 (NGAY DƯỚI VÒNG TRÒN ĐIỂM): Dòng nhận xét (#score-comment) -->
+        <div class="px-3">
+          <p id="score-comment" class="text-xs sm:text-sm font-medium text-amber-300/95 italic leading-snug"></p>
+        </div>
+
+        <!-- Phần tử 4: Khung chi tiết tổng kết (Tối giản - Đủ ý): Danh sách cộng điểm theo từng dòng ngắn gọn -->
+        <div id="score-breakdown-list" class="bg-[#121212] border border-[#3f3f3f] rounded-2xl p-4 text-left space-y-2 text-sm">
+          <!-- Render động các dòng [Vai trò]: [Tên] [Số điểm nhận] -->
+        </div>
+
+        <!-- Phần tử 5 (DƯỚI CÙNG): Đồng hồ đếm ngược: 1 dòng nhỏ gọn dưới cùng -->
+        <div class="pt-1">
+          <p id="score-countdown-text" class="text-xs text-[#aaaaaa] font-medium tracking-wide">
+            Bài tiếp theo sau <span id="score-countdown-num" class="text-amber-400 font-bold">7</span>s...
+          </p>
+        </div>
+      </div>
+    </div>
+
+    <!-- Standby / Idle Screen: Nền mờ nghệ thuật tối giản, hiển thị khi chưa có bài hát phát -->
+    <section
+      id="idle-screen"
+      class="fixed inset-0 z-[5] flex flex-col items-center justify-center p-6 bg-gradient-to-b from-[#0f0f0f] via-[#121212] to-[#0f0f0f] transition-opacity duration-500 select-none pointer-events-none"
+    >
+      <!-- Background subtle ambient lighting -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-30">
+        <div class="w-[500px] h-[500px] bg-gradient-to-tr from-red-600/20 via-neutral-700/20 to-neutral-900 rounded-full blur-3xl animate-pulse"></div>
+      </div>
+
+      <!-- Minimalist subtle ready indicator (hiển thị khi TV ở chế độ chờ) -->
+      <div id="tv-idle-ready" class="relative z-10 text-center space-y-3 opacity-60">
+        <div class="text-4xl sm:text-5xl animate-pulse">🎤</div>
+        <p class="text-xs sm:text-sm tracking-widest uppercase font-semibold text-[#aaaaaa]">
+          Phòng hát đang sẵn sàng • Quét mã QR góc trái để chọn bài
+        </p>
+      </div>
+    </section>
+
+    <!-- MÀN HÌNH CHÀO & NÚT KÍCH HOẠT BAN ĐẦU: 1 CHẠM FULLSCREEN + BẬT ÂM THANH TV HOST -->
+    <div
+      id="tv-activation-overlay"
+      class="fixed inset-0 z-[1000] flex flex-col items-center justify-center p-6 bg-[#0f0f0f]/95 backdrop-blur-md transition-all duration-500 select-none cursor-pointer"
+    >
+      <!-- Background ambient glow spotlight -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none flex items-center justify-center opacity-40">
+        <div class="w-[580px] h-[580px] bg-gradient-to-tr from-red-600/35 via-red-900/25 to-neutral-800/30 rounded-full blur-3xl animate-pulse"></div>
+      </div>
+
+      <div class="relative z-10 text-center space-y-5 max-w-2xl mx-auto flex flex-col items-center">
+        <!-- Nút dạng viên thuốc bo tròn lớn, YouTube Red với hiệu ứng glow -->
+        <button
+          id="btn-start-tv"
+          type="button"
+          class="tv-glow-btn group relative inline-flex items-center justify-center gap-3 px-8 py-5 sm:px-12 sm:py-6 rounded-full bg-[#ff0000] hover:bg-[#cc0000] text-white font-black text-base sm:text-xl md:text-2xl shadow-2xl border border-red-400/40 hover:scale-105 active:scale-95 transition-all duration-300 cursor-pointer"
+        >
+          <span class="text-2xl sm:text-3xl animate-bounce">🎤</span>
+          <span class="tracking-wide uppercase drop-shadow-md">BẮT ĐẦU PHÒNG HÁT (FULLSCREEN & MỞ ÂM THANH)</span>
+          <span class="text-2xl sm:text-3xl animate-pulse">✨</span>
+        </button>
+
+        <!-- Dòng chú thích nhỏ bên dưới nút -->
+        <p class="text-xs sm:text-sm md:text-base text-[#aaaaaa] font-medium tracking-wide drop-shadow max-w-lg leading-relaxed">
+          Chạm hoặc click 1 lần để kích hoạt toàn màn hình, mở khóa âm thanh và khóa cứng màn hình TV
+        </p>
+      </div>
+    </div>
+
+    <!-- Toast Notification -->
+    <div
+      id="toast"
+      class="fixed top-16 right-6 z-50 bg-[#212121] border border-[#3f3f3f] text-[#f1f1f1] text-xs px-4 py-2.5 rounded-full shadow-2xl hidden transition-opacity duration-200 flex items-center gap-2 pointer-events-none"
+    ></div>
+
+    <!-- OVERLAY CHẠM ĐỂ BẬT ÂM THANH (Khi trình duyệt chặn Autoplay có tiếng) -->
+    <div
+      id="unmute-banner"
+      class="fixed bottom-6 right-6 z-[10001] bg-[#212121] hover:bg-[#272727] border-2 border-red-500 text-[#f1f1f1] font-bold px-5 py-3 rounded-2xl shadow-2xl flex items-center gap-3 cursor-pointer transition-all duration-300 animate-bounce hidden select-none"
+    >
+      <span class="text-2xl">🔊</span>
+      <div class="flex flex-col text-left">
+        <span class="text-sm font-extrabold text-white">Chạm để bật âm thanh</span>
+        <span class="text-[11px] text-[#aaaaaa] font-normal">Trình duyệt đang chặn tự phát tiếng</span>
+      </div>
+    </div>
+
+    <!-- MÀN HÌNH KHÓA XÁC THỰC MÃ PIN CHO MÀN HÌNH TV PHỤ (MULTI-SCREEN) -->
+    <div
+      id="tv-pin-modal"
+      class="fixed inset-0 z-[10002] bg-[#0f0f0f]/95 backdrop-blur-md flex items-center justify-center p-6 text-center select-none hidden"
+    >
+      <div class="max-w-md w-full bg-[#212121] border border-[#3f3f3f] rounded-3xl p-7 shadow-2xl space-y-5 text-left">
+        <div class="flex items-center gap-3">
+          <div class="w-12 h-12 rounded-2xl bg-red-600/20 border border-red-600/40 flex items-center justify-center text-2xl shadow-lg shadow-red-600/20 shrink-0 text-red-500">
+            📺
+          </div>
+          <div>
+            <h2 class="text-lg font-bold text-[#f1f1f1]">Màn Hình TV Phụ (Secondary Screen)</h2>
+            <p class="text-xs text-[#aaaaaa]">Phòng đã có màn hình TV chính đang phát</p>
+          </div>
+        </div>
+
+        <p class="text-xs sm:text-sm text-[#aaaaaa] leading-relaxed">
+          Vui lòng nhập <strong class="text-[#f1f1f1]">mã PIN 4 số</strong> đang hiển thị dưới mã QR trên màn hình TV chính để kết nối đồng bộ:
+        </p>
+
+        <form id="tv-pin-form" class="space-y-4">
+          <div>
+            <label for="tv-pin-input" class="block text-xs font-semibold text-[#aaaaaa] mb-1.5">Mã PIN 4 số của phòng</label>
+            <input
+              id="tv-pin-input"
+              type="text"
+              inputmode="numeric"
+              pattern="[0-9]{4}"
+              maxlength="4"
+              autocomplete="off"
+              placeholder="VD: 1234"
+              class="w-full bg-[#121212] border border-[#3f3f3f] focus:border-[#ff0000] rounded-xl px-4 py-3 text-2xl font-mono tracking-widest text-center text-[#f1f1f1] placeholder-[#aaaaaa]/50 outline-none transition"
+              required
+            />
+            <p id="tv-pin-error" class="text-xs text-red-400 mt-2 hidden font-medium text-center"></p>
+          </div>
+
+          <div class="flex items-center gap-2 pt-2">
+            <button
+              id="btn-submit-tv-pin"
+              type="submit"
+              class="flex-1 py-3 px-4 rounded-full bg-[#ff0000] hover:bg-[#cc0000] active:scale-98 text-white font-bold text-sm shadow-lg shadow-red-600/30 transition cursor-pointer"
+            >
+              Xác nhận kết nối TV phụ
+            </button>
+            <a
+              id="btn-goto-client"
+              href="/client.html"
+              class="py-3 px-4 rounded-full bg-[#272727] hover:bg-[#3f3f3f] text-[#f1f1f1] font-semibold text-xs transition text-center cursor-pointer border border-[#3f3f3f]"
+            >
+              Chuyển sang Remote
+            </a>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <!-- LỚP KHÓA 100% TƯƠNG TÁC TRỰC TIẾP TRÊN MÀN HÌNH TV (DISPLAY-ONLY KIOSK, z-index: 9999, KÍCH HOẠT SAU KHI BẤM NÚT) -->
+    <div
+      id="screen-blocker"
+      class="fixed inset-0 z-[9999] bg-transparent cursor-none select-none hidden"
+      aria-hidden="true"
+    ></div>
+
+    <!-- Socket.IO & YouTube IFrame API -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script src="https://www.youtube.com/iframe_api"></script>
+    <script type="module" src="/src/host.ts"></script>
+  </body>
+</html>

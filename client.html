@@ -1,0 +1,694 @@
+<!doctype html>
+<html lang="vi">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <title>Đầu Máy Chọn Bài Karaoke - Remote</title>
+    <meta name="description" content="Giao diện chọn bài Karaoke chuyên nghiệp kết nối màn hình TV" />
+    <meta property="og:title" content="Đầu Máy Chọn Bài Karaoke - Remote" />
+    <meta property="og:description" content="Giao diện chọn bài Karaoke chuyên nghiệp kết nối màn hình TV" />
+    <link rel="stylesheet" href="/src/index.css" />
+  </head>
+  <body class="bg-[#0f0f0f] text-[#f1f1f1] min-h-screen font-sans antialiased flex flex-col items-center selection:bg-[#ff0000] selection:text-white pb-16">
+    
+    <!-- Top Bar Navigation -->
+    <header class="w-full max-w-2xl px-3 sm:px-4 py-2.5 sm:py-3 border-b border-[#3f3f3f] flex items-center justify-between sticky top-0 bg-[#0f0f0f]/95 backdrop-blur-md z-30 gap-2">
+      <div class="flex items-center gap-1.5 sm:gap-2.5 min-w-0">
+        <!-- User Name Pill (Click to change) -->
+        <button
+          id="user-profile-btn"
+          type="button"
+          class="flex items-center gap-1.5 bg-[#212121] hover:bg-[#272727] border border-[#3f3f3f] px-2.5 sm:px-3 py-1.5 rounded-full text-xs text-[#f1f1f1] transition cursor-pointer shrink-0"
+          title="Bấm để đổi tên người hát"
+        >
+          <span class="text-xs">👤</span>
+          <span id="header-username-display" class="font-semibold max-w-[80px] sm:max-w-[120px] truncate">Khách</span>
+          <span class="text-[10px] text-[#aaaaaa]">✎</span>
+        </button>
+
+        <!-- User Personal Balance Badge & Leaderboard Button -->
+        <button
+          id="open-leaderboard-btn"
+          type="button"
+          class="flex items-center gap-1 bg-[#272727] hover:bg-[#383838] active:scale-95 border border-[#3f3f3f] px-2 sm:px-2.5 py-1.5 rounded-full text-xs text-amber-300 font-bold shrink-0 transition cursor-pointer"
+          title="Bấm để xem Bảng xếp hạng"
+        >
+          <span>🏆</span>
+          <span id="my-score">50</span>
+          <span class="text-[10px] text-amber-400/80 font-semibold">đ</span>
+          <span class="text-[9px] bg-amber-400/20 px-1 py-0.5 rounded text-amber-300 font-semibold ml-0.5">BXH</span>
+        </button>
+      </div>
+
+      <!-- Right actions: TV Connection Status -->
+      <div class="flex items-center gap-1.5 shrink-0">
+        <!-- TV Connection Status -->
+        <div class="badge-status flex items-center gap-1.5 bg-[#212121] border border-[#3f3f3f] px-2.5 sm:px-3 py-1.5 rounded-full text-xs shrink-0">
+          <span id="connection-dot" class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shrink-0"></span>
+          <span id="connection-text" class="text-xs font-medium text-emerald-300 whitespace-nowrap">Đã kết nối TV</span>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="w-full max-w-2xl px-3 sm:px-4 py-4 space-y-4 flex-1">
+
+      <!-- 3. CẢI TIẾN TRẢI NGHIỆM: THANH THU GỌN HIỂN THỊ BÀI ĐANG PHÁT VÀ SỐ LƯỢNG BÀI CHỜ -->
+      <section
+        id="now-playing-mini-bar"
+        class="bg-[#212121] hover:bg-[#272727] border border-[#3f3f3f] rounded-2xl p-3 sm:p-3.5 shadow-lg shadow-black/40 transition flex items-center justify-between gap-3 cursor-pointer"
+        title="Bấm để xem danh sách chờ đầy đủ"
+      >
+        <div class="flex items-center gap-3 min-w-0 flex-1">
+          <!-- Thumbnail / Visualizer icon -->
+          <div class="relative w-12 h-10 sm:w-14 sm:h-11 rounded-xl bg-[#121212] overflow-hidden shrink-0 border border-[#3f3f3f]/50 flex items-center justify-center">
+            <img
+              id="mini-bar-thumb"
+              src=""
+              alt=""
+              class="w-full h-full object-cover hidden"
+            />
+            <div id="mini-bar-idle-icon" class="text-xl">🎵</div>
+            <!-- Live badge -->
+            <div id="mini-bar-live-dot" class="absolute top-1 right-1 w-2 h-2 rounded-full bg-[#ff0000] animate-ping hidden"></div>
+          </div>
+
+          <!-- Song Info -->
+          <div class="min-w-0 flex-1">
+            <div class="flex items-center gap-1.5 text-[11px] font-bold text-[#ff0000] uppercase tracking-wider">
+              <span id="mini-bar-badge" class="inline-flex items-center gap-1">
+                <span>Đang phát:</span>
+              </span>
+            </div>
+            <p id="mini-bar-title" class="text-xs sm:text-sm font-bold text-[#f1f1f1] truncate">
+              Chưa có bài nào đang phát
+            </p>
+            <p id="mini-bar-subtitle" class="text-[11px] text-[#aaaaaa] truncate">
+              Hãy chọn bài hát để bắt đầu hát Karaoke
+            </p>
+          </div>
+        </div>
+
+        <!-- Waiting Queue pill & View button -->
+        <div class="flex items-center gap-2 shrink-0">
+          <div
+            id="queue-pill-badge"
+            class="px-2.5 py-1 rounded-full bg-[#272727] border border-[#3f3f3f] text-xs font-semibold text-[#f1f1f1] flex items-center gap-1"
+          >
+            <span>Chờ:</span>
+            <span id="mini-bar-queue-count" class="font-bold text-amber-400">0</span>
+          </div>
+
+          <button
+            id="open-queue-btn"
+            type="button"
+            class="px-3 py-1.5 rounded-full bg-[#272727] hover:bg-[#383838] text-[#f1f1f1] border border-[#3f3f3f] text-xs font-semibold transition cursor-pointer flex items-center gap-1"
+          >
+            <span>Hàng đợi</span>
+            <span class="text-[10px]">▼</span>
+          </button>
+        </div>
+      </section>
+
+      <!-- 1. TÌM KIẾM BÀI HÁT YOUTUBE TRỰC TIẾP (THANH TÌM KIẾM BO TRÒN CON NHỘNG ĐẶC TRƯNG YOUTUBE) -->
+      <section class="space-y-3">
+        <div class="relative">
+          <div class="relative flex items-center">
+            <!-- Search Icon -->
+            <div class="absolute left-4 pointer-events-none text-[#aaaaaa] text-lg flex items-center">
+              <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M21 21l-4.35-4.35m1.35-5.65a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+            </div>
+
+            <!-- YouTube Pill Search Input -->
+            <input
+              id="search-input"
+              type="text"
+              autocomplete="off"
+              placeholder="Nhập tên bài hát hoặc ca sĩ..."
+              class="w-full bg-[#121212] border border-[#3f3f3f] hover:border-neutral-500 focus:border-[#ff0000] rounded-full pl-12 pr-24 py-3.5 sm:py-4 text-sm sm:text-base text-[#f1f1f1] placeholder-[#aaaaaa] outline-none transition shadow-lg shadow-black/20 focus:ring-2 focus:ring-[#ff0000]/20"
+            />
+
+            <!-- 3. CẢI TIẾN TRẢI NGHIỆM: NÚT "XÓA NHANH" (DẤU X) & TÌM KIẾM -->
+            <div class="absolute right-3 flex items-center gap-1.5">
+              <button
+                id="clear-search-btn"
+                type="button"
+                class="hidden w-8 h-8 rounded-full bg-[#272727] hover:bg-[#383838] text-[#aaaaaa] hover:text-[#f1f1f1] items-center justify-center text-sm transition cursor-pointer"
+                title="Xóa nhanh tìm kiếm"
+              >
+                ✕
+              </button>
+
+              <button
+                id="do-search-btn"
+                type="button"
+                class="w-8 h-8 rounded-full bg-[#ff0000] hover:bg-[#cc0000] text-white flex items-center justify-center transition shadow-md shadow-red-600/30 cursor-pointer"
+                title="Tìm kiếm ngay"
+              >
+                <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M14 5l7 7m0 0l-7 7m7-7H3" />
+                </svg>
+              </button>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- 2 TAB CHUYỂN ĐỔI: [📺 YouTube] & [🎉 Tương tác] -->
+      <div class="flex items-center gap-1.5 p-1 bg-[#212121] border border-[#3f3f3f] rounded-full shadow-inner">
+        <button
+          id="tab-btn-songs"
+          type="button"
+          class="flex-1 py-2 px-4 rounded-full text-xs sm:text-sm font-black transition-all flex items-center justify-center gap-2 bg-[#ff0000] text-white shadow-md shadow-red-600/30 cursor-pointer"
+        >
+          <span>YOUTUBE</span>
+        </button>
+        <button
+          id="tab-btn-reactions"
+          type="button"
+          class="flex-1 py-2 px-4 rounded-full text-xs sm:text-sm font-bold transition-all flex items-center justify-center gap-2 text-[#aaaaaa] hover:text-[#f1f1f1] hover:bg-[#272727] cursor-pointer"
+        >
+          <span>TƯƠNG TÁC</span>
+        </button>
+      </div>
+
+      <!-- TAB 1: GIAO DIỆN DANH SÁCH BÀI HÁT YOUTUBE -->
+      <section id="tab-content-songs" class="space-y-3">
+        <div class="flex items-center justify-between px-1">
+          <div class="flex items-center gap-2">
+            <h2 id="search-section-title" class="text-xs sm:text-sm font-bold text-[#aaaaaa] uppercase tracking-wider flex items-center gap-2">
+              <span>Danh sách bài hát</span>
+            </h2>
+            <span id="results-count-badge" class="text-[11px] px-2 py-0.5 rounded-full bg-[#272727] text-[#aaaaaa] border border-[#3f3f3f] font-medium">
+              Chưa tìm
+            </span>
+          </div>
+
+          <!-- Auto-karaoke notice -->
+          <div class="text-[11px] text-[#aaaaaa] flex items-center gap-1 hidden sm:flex">
+            <span>✨ Luôn tự lọc beat Karaoke</span>
+          </div>
+        </div>
+
+        <!-- Trạng thái ban đầu: Chưa nhập từ khóa tìm kiếm -->
+        <div id="search-initial-prompt" class="py-14 text-center border border-dashed border-[#3f3f3f] rounded-2xl bg-[#212121]/30 p-6 space-y-2.5">
+          <div class="w-11 h-11 mx-auto rounded-full bg-red-600/10 border border-red-500/20 flex items-center justify-center text-xl text-red-500">
+            🔍
+          </div>
+          <p class="text-xs sm:text-sm text-[#aaaaaa] font-medium max-w-xs mx-auto">
+            Nhập tên bài hát để tìm kiếm karaoke trên YouTube
+          </p>
+        </div>
+
+        <!-- Loading State -->
+        <div id="search-loading" class="hidden py-12 flex flex-col items-center justify-center space-y-3 text-[#aaaaaa]">
+          <div class="w-8 h-8 border-3 border-[#ff0000] border-t-transparent rounded-full animate-spin"></div>
+          <p class="text-xs font-medium animate-pulse text-[#f1f1f1]">Đang tìm beat Karaoke từ YouTube...</p>
+        </div>
+
+        <!-- Empty Search Result State -->
+        <div id="search-empty" class="hidden py-12 text-center border border-dashed border-[#3f3f3f] rounded-2xl bg-[#212121]/30 p-6 space-y-2">
+          <span class="text-3xl">🔍</span>
+          <p class="text-sm font-bold text-[#f1f1f1]">Không tìm thấy bài hát phù hợp</p>
+          <p class="text-xs text-[#aaaaaa] max-w-sm mx-auto">
+            Hãy thử tìm bằng từ khóa khác hoặc dán trực tiếp đường link YouTube của bài hát vào thanh tìm kiếm.
+          </p>
+        </div>
+
+        <!-- Results Vertical Scroll List -->
+        <div id="results-list" class="space-y-2.5">
+          <!-- Populated by JavaScript -->
+        </div>
+      </section>
+
+      <!-- TAB 2: GIAO DIỆN TƯƠNG TÁC & CỔ VŨ CHẤM ĐIỂM -->
+      <section id="tab-content-reactions" class="space-y-4 hidden">
+        <!-- 1 KHUNG DUY NHẤT TRÊN 1 HÀNG NGANG: ĐÃ TẶNG & HÁT CÙNG / TRẠNG THÁI HÁT -->
+        <div id="singing-action-bar" class="flex items-center justify-between bg-[#212121] border border-[#3f3f3f] rounded-2xl px-3.5 py-2.5 shadow-md gap-3">
+          <!-- Bên trái: Badge hiển thị Đã tặng điểm -->
+          <div id="contributed-badge-box" class="badge-contributed flex items-center gap-1.5 text-[#f1f1f1] text-xs font-bold shrink-0 bg-[#272727] border border-[#3f3f3f] px-3 py-1.5 rounded-full">
+            <span class="text-sm">🎁</span>
+            <span>Đã tặng: <span id="my-contributed-score" class="font-black text-amber-400">0</span> đ</span>
+          </div>
+
+          <!-- Bên phải: Nút bấm [🎤 Hát cùng] / Nhãn trạng thái ngắn gọn -->
+          <button
+            id="join-singing-btn"
+            type="button"
+            class="px-4 py-1.5 rounded-full bg-[#ff0000] hover:bg-[#cc0000] text-white font-extrabold text-xs shadow-md shadow-red-600/20 active:scale-95 transition flex items-center gap-1.5 cursor-pointer shrink-0"
+          >
+            <span>🎤</span>
+            <span id="join-singing-text">Hát cùng</span>
+          </button>
+        </div>
+
+        <!-- KHUNG ĐIỀU KHIỂN TƯƠNG TÁC (CHỈ HIỆN KHI LÀ KHÁN GIẢ) -->
+        <div id="reactions-controls-container" class="space-y-3">
+          <!-- CẢNH BÁO KHI CA SĨ CHÍNH MẤT KẾT NỐI -->
+          <div
+            id="singer-disconnect-alert"
+            class="hidden flex items-center gap-2 p-3 rounded-2xl bg-amber-500/15 border border-amber-500/40 text-amber-200 text-xs font-semibold shadow-sm animate-pulse"
+          >
+            <span class="text-base shrink-0">⚠️</span>
+            <span id="singer-disconnect-alert-text">Ca sĩ đang mất kết nối! Hãy nhắc ca sĩ vào lại để mở quà...</span>
+          </div>
+
+          <!-- HỘP TƯƠNG TÁC TÍCH HỢP GỌN GÀNG (PHONG CÁCH LIVE STREAM) -->
+          <div class="bg-[#212121] border border-[#3f3f3f] rounded-2xl p-3 space-y-2.5 shadow-md">
+            <!-- HÀNG NÚT PHẢN ỨNG 4 BẬC QUÀ LEO THANG: ❤️ 1đ, 🍻 5đ, 👑 20đ, 🚀 50đ -->
+            <div class="flex items-center justify-between gap-1.5">
+              <!-- Thả tim (+1 đ) -->
+              <button
+                id="btn-reaction-heart"
+                type="button"
+                class="reaction-quick-btn flex-1 py-2 px-1.5 rounded-full bg-rose-500/10 hover:bg-rose-500/20 active:scale-90 border border-rose-500/30 text-rose-300 font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer select-none shadow-sm"
+                data-type="heart"
+                data-points="1"
+                title="Thả tim (+1đ)"
+              >
+                <span class="text-base leading-none">❤️</span>
+                <span class="text-[11px] font-extrabold">+1đ</span>
+              </button>
+
+              <!-- Cụng ly (+5 đ) -->
+              <button
+                id="btn-reaction-cheers"
+                type="button"
+                class="reaction-quick-btn flex-1 py-2 px-1.5 rounded-full bg-amber-500/10 hover:bg-amber-500/20 active:scale-90 border border-amber-500/30 text-amber-300 font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer select-none shadow-sm"
+                data-type="cheers"
+                data-points="5"
+                title="Cụng ly (+5đ)"
+              >
+                <span class="text-base leading-none">🍻</span>
+                <span class="text-[11px] font-extrabold">+5đ</span>
+              </button>
+
+              <!-- Vương miện (+20 đ) -->
+              <button
+                id="btn-reaction-crown"
+                type="button"
+                class="reaction-quick-btn flex-1 py-2 px-1.5 rounded-full bg-yellow-500/15 hover:bg-yellow-500/25 active:scale-90 border border-yellow-500/40 text-yellow-300 font-bold text-xs flex items-center justify-center gap-1 transition-all cursor-pointer select-none shadow-sm shadow-yellow-500/10"
+                data-type="crown"
+                data-points="20"
+                title="Vương miện (+20đ)"
+              >
+                <span class="text-base leading-none">👑</span>
+                <span class="text-[11px] font-extrabold text-yellow-300">+20đ</span>
+              </button>
+
+              <!-- Tên lửa (+50 đ - Trùm cuối bùng nổ) -->
+              <button
+                id="btn-reaction-rocket"
+                type="button"
+                class="reaction-quick-btn flex-1 py-2 px-1.5 rounded-full bg-gradient-to-r from-red-600/30 to-orange-500/30 hover:from-red-600/40 hover:to-orange-500/40 active:scale-90 border border-red-500/50 text-orange-200 font-black text-xs flex items-center justify-center gap-1 transition-all cursor-pointer select-none shadow-sm shadow-red-600/20"
+                data-type="rocket"
+                data-points="50"
+                title="Tên lửa (+50đ - Trùm cuối bùng nổ)"
+              >
+                <span class="text-base leading-none animate-pulse">🚀</span>
+                <span class="text-[11px] font-black text-amber-300">+50đ</span>
+              </button>
+            </div>
+
+            <!-- THANH NHẬP BÌNH LUẬN DANMAKU BAY LÊN TV: [ Nhập bình luận (+1 đ)... ] [ Gửi 💬 ] -->
+            <form id="reaction-comment-form" class="flex items-center gap-2">
+              <div class="relative flex-1">
+                <input
+                  id="reaction-comment-input"
+                  type="text"
+                  maxlength="30"
+                  autocomplete="off"
+                  placeholder="Nhập bình luận (+1 đ)..."
+                  class="w-full bg-[#121212] border border-[#3f3f3f] focus:border-[#ff0000] rounded-full pl-4 pr-10 py-2.5 text-xs sm:text-sm text-[#f1f1f1] placeholder-[#aaaaaa] outline-none transition"
+                />
+                <span id="comment-char-count" class="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] font-medium text-[#aaaaaa] pointer-events-none">0/30</span>
+              </div>
+              <button
+                id="btn-send-comment"
+                type="submit"
+                class="px-4 py-2.5 bg-[#ff0000] hover:bg-[#cc0000] text-white rounded-full text-xs sm:text-sm font-bold shadow-md shadow-red-600/30 active:scale-95 transition flex items-center gap-1 cursor-pointer shrink-0"
+              >
+                <span>Gửi</span>
+                <span class="text-sm leading-none">💬</span>
+              </button>
+            </form>
+
+            <!-- GỢI Ý BÌNH LUẬN NHANH 1 CHẠM -->
+            <div class="flex items-center gap-1.5 flex-wrap pt-0.5">
+              <button type="button" class="quick-comment-chip px-3 py-1 rounded-full bg-[#272727] hover:bg-[#383838] border border-[#3f3f3f] text-[#f1f1f1] text-[11px] font-medium transition cursor-pointer" data-text="Hát quá đỉnh! 🔥">
+                Hát quá đỉnh! 🔥
+              </button>
+              <button type="button" class="quick-comment-chip px-3 py-1 rounded-full bg-[#272727] hover:bg-[#383838] border border-[#3f3f3f] text-[#f1f1f1] text-[11px] font-medium transition cursor-pointer" data-text="10 điểm không có nhưng! 👏">
+                10 điểm không có nhưng! 👏
+              </button>
+              <button type="button" class="quick-comment-chip px-3 py-1 rounded-full bg-[#272727] hover:bg-[#383838] border border-[#3f3f3f] text-[#f1f1f1] text-[11px] font-medium transition cursor-pointer" data-text="Lên nốt cao mượt quá! 🎤">
+                Lên nốt cao mượt quá! 🎤
+              </button>
+              <button type="button" class="quick-comment-chip px-3 py-1 rounded-full bg-[#272727] hover:bg-[#383838] border border-[#3f3f3f] text-[#f1f1f1] text-[11px] font-medium transition cursor-pointer" data-text="Diva của lòng anh em! 💖">
+                Diva của lòng anh em! 💖
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <!-- LIVE REACTION LOGS / BẢNG TƯƠNG TÁC GẦN ĐÂY -->
+        <div class="bg-[#212121] border border-[#3f3f3f] rounded-2xl p-3.5 space-y-2">
+          <div class="flex items-center justify-between">
+            <span class="text-xs font-bold text-[#f1f1f1] flex items-center gap-1.5">
+              <span>⚡</span>
+              <span>Không khí phòng hát</span>
+            </span>
+            <span class="text-[11px] text-[#aaaaaa] font-medium">Thời gian thực</span>
+          </div>
+          <div id="recent-reactions-feed" class="space-y-1.5 max-h-36 overflow-y-auto pr-1">
+            <div class="text-[11px] text-[#aaaaaa] text-center py-2 italic" id="reactions-feed-empty">
+              Hãy thả tim hoặc gửi lời khen để cổ vũ ca sĩ nào!
+            </div>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <!-- Modal / Drawer: DANH SÁCH HÀNG ĐỢI & ĐANG PHÁT CHI TIẾT -->
+    <div
+      id="queue-modal"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200"
+    >
+      <div
+        id="queue-modal-panel"
+        class="w-full max-w-lg bg-[#212121] border border-[#3f3f3f] rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl space-y-4 max-h-[85vh] flex flex-col transform translate-y-full sm:translate-y-0 transition-transform duration-200"
+      >
+        <!-- Modal Header -->
+        <div class="flex items-center justify-between pb-3 border-b border-[#3f3f3f] shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="text-lg">📋</span>
+            <h3 class="font-bold text-base text-[#f1f1f1]">Hàng đợi bài hát</h3>
+            <span id="modal-queue-count" class="text-xs px-2.5 py-0.5 rounded-full bg-[#272727] text-[#f1f1f1] border border-[#3f3f3f] font-semibold">0 bài</span>
+          </div>
+          <button
+            id="close-queue-modal-btn"
+            type="button"
+            class="w-8 h-8 rounded-full bg-[#272727] hover:bg-[#383838] text-[#aaaaaa] hover:text-[#f1f1f1] flex items-center justify-center text-sm transition cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Modal Now Playing Banner -->
+        <div id="modal-now-playing-box" class="bg-[#272727] border border-red-500/40 rounded-xl p-3.5 space-y-2 shrink-0 hidden">
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="font-bold text-red-400 flex items-center gap-1.5 uppercase tracking-wide">
+              <span class="w-2 h-2 rounded-full bg-[#ff0000] animate-ping"></span>
+              Đang phát trên TV
+            </span>
+            <button
+              id="modal-skip-btn"
+              type="button"
+              class="text-xs bg-[#121212] hover:bg-red-950 text-[#f1f1f1] hover:text-red-300 border border-[#3f3f3f] hover:border-red-500/50 px-3 py-1 rounded-full transition cursor-pointer"
+            >
+              ⏭️ Bài tiếp theo
+            </button>
+          </div>
+          <div class="flex items-center gap-3">
+            <img id="modal-now-thumb" src="" alt="" class="w-14 h-10 object-cover rounded-lg bg-[#121212] shrink-0 border border-[#3f3f3f]" />
+            <div class="min-w-0 flex-1">
+              <p id="modal-now-title" class="text-xs font-bold text-[#f1f1f1] truncate"></p>
+              <p id="modal-now-requester" class="text-[11px] text-[#aaaaaa] truncate mt-0.5"></p>
+            </div>
+          </div>
+        </div>
+
+        <!-- Waiting List inside Modal -->
+        <div class="space-y-2 flex-1 overflow-y-auto pr-1">
+          <h4 class="text-xs font-semibold text-[#aaaaaa] uppercase tracking-wider">
+            Các bài hát tiếp theo:
+          </h4>
+          <div id="modal-queue-empty" class="py-8 text-center text-xs text-[#aaaaaa] border border-dashed border-[#3f3f3f] rounded-xl">
+            Chưa có bài nào trong hàng đợi.
+          </div>
+          <div id="modal-queue-items" class="space-y-2"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Action Sheet / Popup Tùy chọn bài hát trong Hàng đợi -->
+    <div
+      id="queue-action-sheet"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-[60] flex items-end sm:items-center justify-center p-0 sm:p-4 opacity-0 pointer-events-none transition-opacity duration-200"
+    >
+      <div
+        id="queue-action-sheet-panel"
+        class="w-full max-w-md bg-[#212121] border border-[#3f3f3f] rounded-t-3xl sm:rounded-2xl p-5 shadow-2xl space-y-4 transform translate-y-full sm:translate-y-0 transition-transform duration-200"
+      >
+        <!-- Header bài hát đang chọn -->
+        <div class="flex items-center gap-3 pb-3 border-b border-[#3f3f3f]">
+          <img
+            id="sheet-song-thumb"
+            src=""
+            alt=""
+            class="w-14 h-10 object-cover rounded-lg bg-[#121212] shrink-0 border border-[#3f3f3f]"
+          />
+          <div class="min-w-0 flex-1">
+            <h4 id="sheet-song-title" class="text-xs sm:text-sm font-bold text-[#f1f1f1] truncate"></h4>
+            <p id="sheet-song-requester" class="text-[11px] text-[#aaaaaa] truncate mt-0.5"></p>
+          </div>
+          <button
+            id="sheet-close-btn-top"
+            type="button"
+            class="w-7 h-7 rounded-full bg-[#272727] hover:bg-[#383838] text-[#aaaaaa] hover:text-[#f1f1f1] flex items-center justify-center text-xs transition cursor-pointer shrink-0"
+          >
+            ✕
+          </button>
+        </div>
+
+        <!-- Danh sách nút hành động -->
+        <div class="space-y-2">
+          <!-- [⚡ Ưu tiên phát tiếp theo]: Đưa bài lên ngay vị trí đầu tiên của hàng đợi (index 0) -->
+          <button
+            id="sheet-btn-priority"
+            type="button"
+            class="w-full p-3 rounded-full bg-amber-500/15 hover:bg-amber-500/25 active:scale-[0.98] border border-amber-500/30 text-amber-300 font-bold text-xs sm:text-sm flex items-center justify-start gap-3 transition cursor-pointer px-4"
+          >
+            <span class="text-lg">⚡</span>
+            <div class="text-left flex-1 min-w-0">
+              <p class="leading-none font-bold">Ưu tiên phát tiếp theo</p>
+              <p class="text-[10px] font-normal text-amber-400/80 mt-1">Đưa bài lên ngay vị trí đầu tiên của hàng đợi</p>
+            </div>
+          </button>
+
+          <!-- [▲ Lên 1 bài]: Nhích bài lên trước 1 vị trí -->
+          <button
+            id="sheet-btn-move-up"
+            type="button"
+            class="w-full p-3 rounded-full bg-[#272727] hover:bg-[#383838] active:scale-[0.98] border border-[#3f3f3f] text-[#f1f1f1] font-bold text-xs sm:text-sm flex items-center justify-start gap-3 transition cursor-pointer px-4"
+          >
+            <span class="text-base text-red-500">▲</span>
+            <span class="leading-none">Lên 1 bài</span>
+          </button>
+
+          <!-- [▼ Xuống 1 bài]: Lùi bài xuống sau 1 vị trí -->
+          <button
+            id="sheet-btn-move-down"
+            type="button"
+            class="w-full p-3 rounded-full bg-[#272727] hover:bg-[#383838] active:scale-[0.98] border border-[#3f3f3f] text-[#f1f1f1] font-bold text-xs sm:text-sm flex items-center justify-start gap-3 transition cursor-pointer px-4"
+          >
+            <span class="text-base text-red-500">▼</span>
+            <span class="leading-none">Xuống 1 bài</span>
+          </button>
+
+          <!-- [🗑️ Xóa bài khỏi hàng đợi]: Xóa bài hát này (màu đỏ YouTube) -->
+          <button
+            id="sheet-btn-delete"
+            type="button"
+            class="w-full p-3 rounded-full bg-red-600/20 hover:bg-red-600/30 active:scale-[0.98] border border-red-500/40 text-red-300 font-bold text-xs sm:text-sm flex items-center justify-start gap-3 transition cursor-pointer px-4"
+          >
+            <span class="text-lg">🗑️</span>
+            <span class="leading-none">Xóa bài khỏi hàng đợi</span>
+          </button>
+        </div>
+
+        <!-- [Hủy / Đóng]: Đóng menu -->
+        <button
+          id="sheet-btn-cancel"
+          type="button"
+          class="w-full py-2.5 rounded-full bg-[#272727] hover:bg-[#383838] text-[#aaaaaa] hover:text-[#f1f1f1] font-medium text-xs transition cursor-pointer border border-[#3f3f3f]"
+        >
+          Hủy / Đóng
+        </button>
+      </div>
+    </div>
+
+    <!-- 2. LUỒNG BẮT BUỘC NHẬP TÊN KHI QUÉT TRÊN ĐIỆN THOẠI (POPUP/MODAL KHÓA MÀN HÌNH) -->
+    <div
+      id="join-room-modal"
+      class="hidden fixed inset-0 bg-[#0f0f0f]/95 backdrop-blur-md z-50 flex items-center justify-center p-4 transition-all duration-300"
+    >
+      <div class="w-full max-w-sm bg-[#212121] border border-[#3f3f3f] rounded-3xl p-6 shadow-2xl space-y-4 text-center">
+        <div class="w-16 h-16 mx-auto rounded-full bg-red-600/20 border border-red-600/40 flex items-center justify-center text-3xl shadow-lg shadow-red-600/20 text-red-500">
+          🎤
+        </div>
+
+        <div class="space-y-1">
+          <h2 class="text-lg font-black text-[#f1f1f1]">
+            Tham gia phòng Karaoke
+          </h2>
+          <p id="join-modal-subtext" class="text-xs text-[#aaaaaa] leading-relaxed">
+            Nhập mã PIN trên TV và tên của bạn để tham gia phòng hát
+          </p>
+        </div>
+
+        <form id="join-room-form" class="space-y-3 pt-1">
+          <div id="join-room-group" class="text-left space-y-1">
+            <label class="text-[11px] font-bold text-sky-400 uppercase tracking-wider flex items-center justify-between">
+              <span>🏠 Tên phòng Karaoke</span>
+              <span id="room-badge-auto" class="hidden text-[10px] text-sky-300 lowercase font-normal">Đã nhận diện</span>
+            </label>
+            <input
+              id="join-room-input"
+              type="text"
+              maxlength="30"
+              required
+              placeholder="Ví dụ: phong1, vip1..."
+              class="w-full bg-[#121212] border border-[#3f3f3f] hover:border-sky-500/70 rounded-full px-4 py-2.5 text-sm text-center text-sky-200 placeholder-[#aaaaaa]/50 outline-none focus:border-sky-400 focus:ring-2 focus:ring-sky-500/20 transition font-bold"
+            />
+          </div>
+
+          <div id="join-pin-group" class="text-left space-y-1">
+            <label class="text-[11px] font-bold text-amber-400 uppercase tracking-wider flex items-center justify-between">
+              <span>🔑 Mã PIN (4 số trên TV)</span>
+              <span id="pin-badge-auto" class="hidden text-[10px] text-emerald-400 lowercase font-normal">Đã nhận từ QR</span>
+            </label>
+            <input
+              id="join-pin-input"
+              type="text"
+              maxlength="6"
+              inputmode="numeric"
+              placeholder="Nhập 4 số PIN..."
+              class="w-full bg-[#121212] border border-[#3f3f3f] hover:border-amber-500/70 rounded-full px-4 py-2.5 text-sm text-center text-amber-300 placeholder-[#aaaaaa]/50 outline-none focus:border-amber-400 focus:ring-2 focus:ring-amber-500/20 transition font-bold tracking-widest"
+            />
+          </div>
+
+          <div class="text-left space-y-1">
+            <label class="text-[11px] font-bold text-[#aaaaaa] uppercase tracking-wider">👤 Tên ca sĩ</label>
+            <input
+              id="join-name-input"
+              type="text"
+              maxlength="25"
+              required
+              placeholder="Nhập tên của bạn..."
+              class="w-full bg-[#121212] border border-[#3f3f3f] hover:border-neutral-500 rounded-full px-4 py-2.5 text-sm text-center text-[#f1f1f1] placeholder-[#aaaaaa] outline-none focus:border-[#ff0000] focus:ring-2 focus:ring-red-600/20 transition font-medium"
+            />
+          </div>
+
+          <div id="join-error-msg" class="hidden text-xs text-red-400 font-medium py-1 px-2 rounded-xl bg-red-950/40 border border-red-800/60"></div>
+
+          <button
+            id="submit-join-room-btn"
+            type="submit"
+            class="w-full py-3 px-4 rounded-full text-sm font-bold text-white bg-[#ff0000] hover:bg-[#cc0000] shadow-lg shadow-red-600/30 transition cursor-pointer flex items-center justify-center gap-2"
+          >
+            <span>Vào phòng hát 🎤</span>
+          </button>
+        </form>
+
+        <p class="text-[11px] text-[#aaaaaa]">
+          Tên của bạn sẽ hiển thị trên màn hình TV và danh sách bài hát chờ.
+        </p>
+      </div>
+    </div>
+
+    <!-- Modal: ĐỔI TÊN NGƯỜI DÙNG -->
+    <div
+      id="username-modal"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200"
+    >
+      <div class="w-full max-w-sm bg-[#212121] border border-[#3f3f3f] rounded-2xl p-5 shadow-2xl space-y-4">
+        <div class="flex items-center justify-between">
+          <h3 class="font-bold text-base text-[#f1f1f1] flex items-center gap-2">
+            <span>👤</span>
+            <span>Đặt tên người hát</span>
+          </h3>
+          <button
+            id="close-username-modal-btn"
+            type="button"
+            class="text-[#aaaaaa] hover:text-[#f1f1f1] text-sm"
+          >
+            ✕
+          </button>
+        </div>
+
+        <p class="text-xs text-[#aaaaaa]">
+          Tên của bạn sẽ hiển thị trên màn hình TV khi bài hát của bạn được phát.
+        </p>
+
+        <div>
+          <input
+            id="username-modal-input"
+            type="text"
+            maxlength="25"
+            placeholder="Nhập tên của bạn (VD: Tuấn, Mai, Ca sĩ ẩn danh...)"
+            class="w-full bg-[#121212] border border-[#3f3f3f] rounded-full px-4 py-2.5 text-sm text-[#f1f1f1] placeholder-[#aaaaaa] outline-none focus:border-[#ff0000] focus:ring-1 focus:ring-[#ff0000]"
+          />
+        </div>
+
+        <div class="flex justify-end gap-2">
+          <button
+            id="cancel-username-btn"
+            type="button"
+            class="px-4 py-2 rounded-full text-xs font-semibold text-[#aaaaaa] hover:text-[#f1f1f1] bg-[#272727] hover:bg-[#383838] transition cursor-pointer border border-[#3f3f3f]"
+          >
+            Hủy
+          </button>
+          <button
+            id="save-username-btn"
+            type="button"
+            class="px-5 py-2 rounded-full text-xs font-bold text-white bg-[#ff0000] hover:bg-[#cc0000] transition cursor-pointer shadow-md shadow-red-600/30"
+          >
+            Lưu lại
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal: BẢNG XẾP HẠNG THÀNH VIÊN (SẮP XẾP GIẢM DẦN THEO ĐIỂM SỐ) -->
+    <div
+      id="leaderboard-modal"
+      class="fixed inset-0 bg-black/80 backdrop-blur-sm z-50 flex items-center justify-center p-4 opacity-0 pointer-events-none transition-opacity duration-200"
+    >
+      <div class="w-full max-w-sm bg-[#212121] border border-[#3f3f3f] rounded-2xl p-5 shadow-2xl space-y-4 max-h-[80vh] flex flex-col">
+        <div class="flex items-center justify-between pb-2 border-b border-[#3f3f3f] shrink-0">
+          <div class="flex items-center gap-2">
+            <span class="text-xl">🏆</span>
+            <h3 class="font-bold text-base text-[#f1f1f1]">Bảng xếp hạng</h3>
+          </div>
+          <button
+            id="close-leaderboard-btn"
+            type="button"
+            class="w-8 h-8 rounded-full bg-[#272727] hover:bg-[#383838] text-[#aaaaaa] hover:text-[#f1f1f1] flex items-center justify-center text-sm transition cursor-pointer"
+          >
+            ✕
+          </button>
+        </div>
+
+        <div id="leaderboard-list" class="space-y-2 overflow-y-auto flex-1 pr-1">
+          <!-- Populated by JavaScript -->
+        </div>
+      </div>
+    </div>
+
+    <!-- 3. CẢI TIẾN TRẢI NGHIỆM: THÔNG BÁO NHẸ (TOAST) -->
+    <div
+      id="toast"
+      class="fixed bottom-6 left-1/2 -translate-x-1/2 z-50 hidden px-4 py-3 rounded-full shadow-2xl text-xs sm:text-sm font-semibold flex items-center gap-2 max-w-[90vw] transition-all duration-200 bg-[#212121] border border-[#3f3f3f] text-[#f1f1f1]"
+    >
+      <span id="toast-icon">✓</span>
+      <span id="toast-text">Đã chọn bài</span>
+    </div>
+
+    <!-- Socket.IO Script -->
+    <script src="/socket.io/socket.io.js"></script>
+    <script type="module" src="/src/client.ts"></script>
+  </body>
+</html>
